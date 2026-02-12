@@ -1,61 +1,61 @@
-# Liaoluan (潦草清单) - Brutalism Style Planner
+# Liaoluan (潦草清单) - 极简主义待办应用
 
-**Liaoluan** is a minimalist, Neo-Brutalism style personal productivity app for Android. It combines tasks, habits, and notes into a unified, bold, and high-contrast interface designed to get things done without the fluff.
+**Liaoluan (潦草清单)** 是一款专为 Android 打造的新野兽派（Neo-Brutalism）风格个人效率应用。它将任务、习惯打卡和灵感笔记融合在一个统一、大胆且高对比度的界面中，旨在帮助你摒弃繁杂，专注于行动。
 
-## ✨ Features
+## ✨ 主要功能
 
 ### 1. 任务 (Tasks)
-- **High Contrast UI**: Bold black and white design with stark borders.
-- **Priority Management**: Distinct visual indicators for Low (!), Medium (!!), and High (!!!) priority.
-- **Custom Reminders**: Set specific time-based reminders with custom motivational text.
-- **Tagging System**: Organize tasks by Work, Life, Urgent, or Learning.
+- **高对比度 UI**：粗犷的黑白设计搭配强烈的边框线条。
+- **优先级管理**：清晰的视觉符号区分低 (!)、中 (!!)、高 (!!!) 优先级。
+- **自定义提醒**：支持设置精确的提醒时间，并可自定义鼓励话语，拒绝冷冰冰的通知。
+- **标签系统**：支持工作、生活、紧急、学习等分类标签。
 
 ### 2. 习惯 (Habits)
-- **Streak Tracking**: Visualize your consistency with bold calendars and streak counters.
-- **Flexible Scheduling**: Set start/end times, frequency (days of week), and intraday reminder intervals.
-- **Time-Only Picker**: Streamlined time selection without unnecessary date inputs.
-- **Personalised Motivation**: Get notified with your own custom tailored encouraging phrases.
+- **连胜追踪**：通过醒目的日历和连胜计数器可视化你的坚持。
+- **灵活排程**：支持设置开始/结束时间、执行频率（周几）以及每日提醒间隔。
+- **纯净时间选择**：移除冗余的日期选择，仅保留更纯粹的时间点设置。
+- **个性化激励**：通知中心会推送你预设的专属激励语，动力满满。
 
 ### 3. 笔记 (Notes)
-- **Quick Capture**: Write down thoughts instantly with a clean editor.
-- **Image Support**: Insert images directly into your notes.
-- **Preview & Expand**: Collapsible note cards to keep your list tidy.
-- **Pinning**: Keep important notes at the top.
+- **快速记录**：干净的编辑器，随时捕捉瞬时灵感。
+- **图文混排**：支持在笔记中直接插入图片。
+- **预览与折叠**：提供笔记预览模式，支持一键展开/折叠，保持列表整洁。
+- **置顶功能**：重要笔记一键置顶。
 
-## 🛠️ Tech Stack
+## 🛠️ 技术栈
 
-- **Language**: Kotlin
-- **UI Framework**: Jetpack Compose
-- **Architecture**: MVVM + Clean Architecture
-- **Dependency Injection**: Hilt
-- **Database**: Room
-- **Background Tasks**: WorkManager
-- **Asynchronous**: Coroutines & Flow
-- **JSON Parsing**: Kotlinx Serialization
+- **语言**: Kotlin
+- **UI 框架**: Jetpack Compose
+- **架构**: MVVM + Clean Architecture
+- **依赖注入**: Hilt
+- **数据库**: Room
+- **后台任务**: WorkManager
+- **异步处理**: Coroutines & Flow
+- **JSON 解析**: Kotlinx Serialization
 
-## 🏗️ Build & Install
+## 🏗️ 构建与安装
 
-### Prerequisites
-- Android Studio Koala or newer
+### 环境要求
+- Android Studio Koala 或更新版本
 - JDK 17+
 
-### Build Steps
-1. Clone the repository:
+### 构建步骤
+1. 克隆仓库：
    ```bash
    git clone https://github.com/luzzr-123/liaoluan.git
    ```
-2. Open in Android Studio.
-3. Sync Gradle.
-4. Run on your emulator or device.
+2. 使用 Android Studio 打开项目。
+3. 同步 Gradle (Sync Gradle)。
+4. 连接模拟器或真机运行即可。
 
-## 🎨 Design Philosophy
+## 🎨 设计理念
 
-"Brutalism" in UI design is characterized by:
-- Raw, unpolished aesthetics
-- Bold typography (Custom KaiTi font integration)
-- High contrast colors (Black, White, Yellow, Blue)
-- Distinctive borders and shadows
-- Functional minimalism
+"野兽派 (Brutalism)" UI 设计风格的特点：
+- 原始、未加修饰的美感
+- 大胆的排版（集成了 LXGW WenKai / 霞鹜文楷 字体）
+- 高对比度配色（黑、白、黄、蓝）
+- 鲜明的边框与阴影
+- 功能至上的极简主义
 
 ---
 *Developed by Luuzr*
