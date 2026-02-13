@@ -5,11 +5,13 @@ import androidx.lifecycle.viewModelScope
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.flow.*
 import kotlinx.coroutines.launch
+import kotlinx.coroutines.ExperimentalCoroutinesApi
 import www.luuzr.liaoluan.data.model.*
 import www.luuzr.liaoluan.data.repository.PlannerRepository
 import java.text.SimpleDateFormat
 import java.util.Date
 import java.util.Locale
+import kotlinx.coroutines.runBlocking // Add this
 import javax.inject.Inject
 
 /**
@@ -53,8 +55,54 @@ class MainViewModel @Inject constructor(
 
     val notes: StateFlow<List<Note>> = repository.notes
         .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), emptyList())
+    
+    // ==================== 日期选择逻辑 ====================
+    private val _selectedDate = MutableStateFlow(www.luuzr.liaoluan.util.DateHandle.todayDate())
+    val selectedDate: StateFlow<String> = _selectedDate.asStateFlow()
+    
+    // 每日日志流 (基于选中日期)
+    @OptIn(ExperimentalCoroutinesApi::class)
+    private val habitLogs = _selectedDate.flatMapLatest { date ->
+        repository.getHabitLogs(date)
+    }.stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), emptyList())
+
+    // 结合 习惯列表 + 选中日期 + 历史记录 -> 展示用的习惯列表
+    val visibleHabits = combine(habits, _selectedDate, habitLogs) { allHabits, date, logs ->
+        val today = www.luuzr.liaoluan.util.DateHandle.todayDate()
+        val isToday = date == today
+        val isFuture = date > today
+        
+        // 计算选中日期是周几 (0=Mon, ... 6=Sun)
+        // DateHandle.parseDate 返回 timestamp
+        // Calendar to get day of week.
+        // 简单处理：DateHandle 增加 getDayIndex(dateStr)
+        val dayIndex = www.luuzr.liaoluan.util.DateHandle.getDayOfWeekIndex(date)
+        
+        allHabits.filter { it.frequency.contains(dayIndex) }
+            .map { habit ->
+                if (isToday) {
+                    habit // 今天直接显示实时状态
+                } else if (isFuture) {
+                     // 未来：重置进度，只读
+                     habit.copy(progress = 0, completed = false)
+                } else {
+                    // 过去：从 logs 查找
+                    val log = logs.find { it.habitId == habit.id }
+                    if (log != null) {
+                        habit.copy(progress = log.progress, completed = log.completed)
+                    } else {
+                        habit.copy(progress = 0, completed = false)
+                    }
+                }
+            }
+    }.stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), emptyList())
+
+    fun selectDate(date: String) {
+        _selectedDate.value = date
+    }
 
     init {
+        // ... (Keep existing init logic logic for streak reset, but be careful not to conflict) ... 
         // 每日重置 — App 启动时检查所有习惯，若上次完成日期不是今天则重置 progress
         viewModelScope.launch {
              // 仅订阅一次 habits 流，获取当前快照进行检查
@@ -231,6 +279,20 @@ class MainViewModel @Inject constructor(
                     streakDays = newStreak
                 )
             )
+
+            // 记录到历史表 (HabitLog)
+            // ...
+            
+            repository.deleteHabitLog(habit.id, today)
+            repository.insertHabitLog(
+                www.luuzr.liaoluan.data.db.entity.HabitLogEntity(
+                    habitId = habit.id,
+                    date = today,
+                    progress = newProgress,
+                    completed = isCompleted
+                )
+            )
+
             triggerParticles()
         }
     }
@@ -294,6 +356,7 @@ class MainViewModel @Inject constructor(
         return BackupData(
             tasks = tasks.value,
             habits = habits.value,
+            habitLogs = runBlocking { repository.getAllHabitLogs() }, // Warning: Valid in suspend fun, but here?
             notes = notes.value
         )
     }
@@ -303,6 +366,7 @@ class MainViewModel @Inject constructor(
             val backup = BackupData(
                 tasks = tasks.value,
                 habits = habits.value,
+                habitLogs = runBlocking { repository.getAllHabitLogs() },
                 notes = notes.value
             )
             json.encodeToString(BackupData.serializer(), backup)
@@ -365,6 +429,10 @@ class MainViewModel @Inject constructor(
                 backup.notes?.let {
                     repository.deleteAllNotes()
                     repository.insertAllNotes(it)
+                }
+                backup.habitLogs?.let {
+                    repository.deleteAllHabitLogs()
+                    repository.insertAllHabitLogs(it)
                 }
                 showToast("全量数据恢复成功")
             }

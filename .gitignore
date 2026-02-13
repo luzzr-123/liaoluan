@@ -15,3 +15,5 @@ build/
 local.properties
 .idea
 *.jks
+
+build_log*.txt

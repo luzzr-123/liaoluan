@@ -384,6 +384,12 @@ fun TaskForm(
                 onClick = {
                     // 空表单验证 — 名称不能为空
                     if (text.isBlank()) return@BrutalButton
+                    // 校验：新建任务不允许设置过去的时间作为截止日期
+                    if (initialTask == null && dueTimestamp != 0L && dueTimestamp < System.currentTimeMillis()) {
+                        android.widget.Toast.makeText(context, "不能回到过去！请设置未来的时间。", android.widget.Toast.LENGTH_SHORT).show()
+                        return@BrutalButton
+                    }
+
                     onConfirm(
                         (initialTask ?: Task()).copy(
                             text = text,

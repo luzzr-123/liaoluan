@@ -11,6 +11,8 @@ import www.luuzr.liaoluan.data.db.dao.TaskDao
 import www.luuzr.liaoluan.data.db.entity.HabitEntity
 import www.luuzr.liaoluan.data.db.entity.NoteEntity
 import www.luuzr.liaoluan.data.db.entity.TaskEntity
+import www.luuzr.liaoluan.data.db.entity.HabitLogEntity
+import www.luuzr.liaoluan.data.db.dao.HabitLogsDao // Add this
 import www.luuzr.liaoluan.data.model.*
 import javax.inject.Inject
 import javax.inject.Singleton
@@ -23,7 +25,8 @@ class PlannerRepository @Inject constructor(
     private val taskDao: TaskDao,
     private val habitDao: HabitDao,
     private val noteDao: NoteDao,
-    private val json: Json // Inject Json
+    private val habitLogsDao: HabitLogsDao, // Inject HabitLogsDao
+    private val json: Json
 ) {
     // ... (keep flow definitions) ... 
     // ==================== 任务 ====================
@@ -65,6 +68,21 @@ class PlannerRepository @Inject constructor(
     suspend fun deleteAllNotes() = noteDao.deleteAll()
     suspend fun insertAllNotes(notes: List<Note>) =
         noteDao.insertAll(notes.map { it.toEntity() })
+
+    // ==================== 习惯日志 (Habit Logs) ====================
+
+    // ==================== 习惯日志 (Habit Logs) ====================
+
+    fun getHabitLogs(date: String): Flow<List<HabitLogEntity>> = habitLogsDao.getLogsByDate(date)
+
+    suspend fun insertHabitLog(log: HabitLogEntity) = habitLogsDao.insertLog(log)
+    
+    suspend fun deleteHabitLog(habitId: Long, date: String) = habitLogsDao.deleteLog(habitId, date)
+
+    suspend fun getAllHabitLogs() = habitLogsDao.getAllLogs()
+    suspend fun insertAllHabitLogs(logs: List<HabitLogEntity>) = habitLogsDao.insertAllLogs(logs)
+    suspend fun deleteAllHabitLogs() = habitLogsDao.deleteAllLogs()
+    
         
     // ==================== 映射扩展函数 ====================
 

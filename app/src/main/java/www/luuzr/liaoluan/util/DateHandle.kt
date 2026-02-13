@@ -3,6 +3,7 @@ package www.luuzr.liaoluan.util
 import java.text.SimpleDateFormat
 import java.util.Date
 import java.util.Locale
+import java.util.Calendar // Add this
 
 object DateHandle {
     // ThreadLocal ensures thread safety for SimpleDateFormat
@@ -19,7 +20,7 @@ object DateHandle {
     }
 
     fun todayDate(): String {
-        return dateFormat.get()?.format(Date()) ?: ""
+        return dateFormat.get().format(Date())
     }
 
     fun formatDate(timestamp: Long): String {
@@ -32,6 +33,16 @@ object DateHandle {
 
     fun formatDateTime(timestamp: Long): String {
         return dateTimeFormat.get()?.format(Date(timestamp)) ?: ""
+    }
+    
+    fun getDayOfWeekIndex(dateStr: String): Int {
+        val date = dateFormat.get().parse(dateStr) ?: return 0
+        val cal = Calendar.getInstance()
+        cal.time = date
+        // Calendar.SUNDAY=1, MONDAY=2...
+        // We want 0=Mon, ... 6=Sun
+        val day = cal.get(Calendar.DAY_OF_WEEK)
+        return if (day == Calendar.SUNDAY) 6 else day - 2
     }
     
     fun parseDate(dateStr: String): Long {

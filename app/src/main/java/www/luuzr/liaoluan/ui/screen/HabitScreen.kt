@@ -16,6 +16,7 @@ import androidx.compose.material3.Icon
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.collectAsState // Add this
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.rotate
@@ -37,41 +38,52 @@ import www.luuzr.liaoluan.ui.theme.BrutalColors
  */
 @Composable
 fun HabitScreen(
-    habits: List<Habit>,
+    viewModel: www.luuzr.liaoluan.ui.viewmodel.MainViewModel, // Add VM param
+    habits: List<Habit>, // Keep for compatibility or remove if unused? Used in logic? No, overridden by VM flow.
     onProgress: (Long) -> Unit,
     onDelete: (Long) -> Unit,
     onEdit: (Habit) -> Unit,
     modifier: Modifier = Modifier
 ) {
+    val selectedDate by viewModel.selectedDate.collectAsState()
+    val habitsForDate by viewModel.visibleHabits.collectAsState()
+    val today = www.luuzr.liaoluan.util.DateHandle.todayDate()
+    val isToday = selectedDate == today
+
     Box(
         modifier = modifier
             .fillMaxSize()
             .background(BrutalColors.HabitTeal)
             .padding(horizontal = 16.dp)
     ) {
-        // 标题 — 右上角黑底白字
-        // Header removed
-
-        if (habits.isEmpty()) {
-            Text(
-                text = "空空如也",
-                fontWeight = FontWeight.Black,
-                fontSize = 48.sp,
-                color = BrutalColors.Black.copy(alpha = 0.2f),
-                modifier = Modifier
-                    .align(Alignment.Center)
-                    .rotate(12f)
+        Column(modifier = Modifier.fillMaxSize()) {
+            // 周日历
+            www.luuzr.liaoluan.ui.component.WeekCalendar(
+                selectedDate = selectedDate,
+                onDateSelected = viewModel::selectDate
             )
-        } else {
-            LazyColumn(
-                modifier = Modifier
-                    .fillMaxSize()
-                    .padding(top = 16.dp),
-                contentPadding = PaddingValues(bottom = 120.dp),
-                verticalArrangement = Arrangement.spacedBy(16.dp)
-            ) {
-                items(habits, key = { it.id }) { habit ->
-                    HabitCard(habit, onProgress, onDelete, onEdit)
+
+            if (habitsForDate.isEmpty()) {
+                Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
+                    Text(
+                        text = if(isToday) "暂无习惯" else "无记录",
+                        fontWeight = FontWeight.Black,
+                        fontSize = 32.sp,
+                        color = BrutalColors.Black.copy(alpha = 0.2f),
+                        modifier = Modifier.rotate(12f)
+                    )
+                }
+            } else {
+                LazyColumn(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .weight(1f),
+                    contentPadding = PaddingValues(bottom = 120.dp),
+                    verticalArrangement = Arrangement.spacedBy(16.dp)
+                ) {
+                    items(habitsForDate, key = { it.id }) { habit ->
+                        HabitCard(habit, onProgress, onDelete, onEdit, isToday)
+                    }
                 }
             }
         }
@@ -83,7 +95,8 @@ private fun HabitCard(
     habit: Habit,
     onProgress: (Long) -> Unit,
     onDelete: (Long) -> Unit,
-    onEdit: (Habit) -> Unit
+    onEdit: (Habit) -> Unit,
+    isToday: Boolean
 ) {
     val bgColor by animateColorAsState(
         if (habit.completed) BrutalColors.Black else BrutalColors.White, label = "habitBg"
@@ -92,10 +105,21 @@ private fun HabitCard(
         if (habit.completed) BrutalColors.White else BrutalColors.Black, label = "habitTxt"
     )
 
-    EditableCard(onEdit = { onEdit(habit) }) {
-        // 外层 Box — 用于阴影和内容的 Z 轴排列
+    // 如果不是今天，禁用点击详情/编辑，或者允许查看但不允许操作进度
+    // 需求: "点击就可以看到之前的习惯的完成情况" -> 应该是只读。
+    // EditableCard 允许点击编辑。历史记录是否允许编辑？通常不允许。
+    // 所以如果 !isToday，这里的 onEdit 应该禁用或者变成“查看详情”
+    // 这里简单处理：禁用 EditableCard 的点击（如果 EditableCard 支持 enabled），这里它不支持，我们拦截 onEdit
+    
+    val finalOnEdit: () -> Unit = { 
+        if (isToday) onEdit(habit) 
+        // else: show toast "History is read-only"? Or just do nothing.
+    }
+
+    EditableCard(onEdit = finalOnEdit) {
+        // ... (Keep existing Box structure) ...
         Box {
-            // 硬阴影 — 必须先绘制，否则会覆盖内容
+            // 硬阴影
             Box(
                 modifier = Modifier
                     .matchParentSize()
@@ -111,7 +135,7 @@ private fun HabitCard(
                     .border(4.dp, BrutalColors.Black)
                     .padding(16.dp)
             ) {
-                // 大字母背景装饰（对应原型中的巨大首字母）
+                // ... (Keep Letter decoration) ...
                 Text(
                     text = habit.text.firstOrNull()?.toString() ?: "",
                     fontSize = 80.sp,
@@ -129,7 +153,7 @@ private fun HabitCard(
 
                 // 内容层
                 Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
-                    // 标题行 + 连续天数/进度
+                    // ... (Keep Title/Streak Row) ...
                     Row(
                         modifier = Modifier.fillMaxWidth(),
                         horizontalArrangement = Arrangement.SpaceBetween,
@@ -145,7 +169,6 @@ private fun HabitCard(
                         )
 
                         Column(horizontalAlignment = Alignment.End) {
-                            // 连续天数 badge
                             Box(
                                 modifier = Modifier
                                     .rotate(2f)
@@ -160,8 +183,7 @@ private fun HabitCard(
                                     color = if (habit.completed) BrutalColors.Black else BrutalColors.White
                                 )
                             }
-
-                            // 进度 badge（仅 target > 1 时）
+                            // ... (Progress Badge) ...
                             if (habit.targetValue > 1) {
                                 Spacer(modifier = Modifier.height(4.dp))
                                 Box(
@@ -195,14 +217,14 @@ private fun HabitCard(
                         )
                     }
 
-                    // 每周频率指示器
+                    // 每周频率指示器 - FIX: Increase size to 24.dp
                     val days = listOf("一", "二", "三", "四", "五", "六", "日")
                     Row(horizontalArrangement = Arrangement.spacedBy(2.dp)) {
                         days.forEachIndexed { index, day ->
                             val isActive = habit.frequency.contains(index)
                             Box(
                                 modifier = Modifier
-                                    .size(20.dp)
+                                    .size(24.dp) // Increased from 20.dp
                                     .border(
                                         2.dp,
                                         if (habit.completed) Color(0xFF4B5563) else BrutalColors.Black
@@ -251,7 +273,6 @@ private fun HabitCard(
                                 tint = textColor,
                                 modifier = Modifier.size(14.dp)
                             )
-                            // 提醒时间显示逻辑修复
                             val displayTime = if (habit.reminderInterval > 0) {
                                 "${habit.startTime} - ${habit.endTime}"
                             } else {
@@ -270,27 +291,46 @@ private fun HabitCard(
                             verticalAlignment = Alignment.CenterVertically,
                             horizontalArrangement = Arrangement.spacedBy(8.dp)
                         ) {
-                            // 删除按钮
-                            Icon(
-                                Icons.Default.Delete,
-                                contentDescription = "删除",
-                                tint = textColor,
-                                modifier = Modifier
-                                    .size(20.dp)
-                                    .clickable { onDelete(habit.id) }
-                            )
+                            // 仅今日允许删除？或者都可以？
+                            // 历史记录不应该能删除习惯本身（因为是元数据），所以隐藏删除按钮
+                            if (isToday) {
+                                Icon(
+                                    Icons.Default.Delete,
+                                    contentDescription = "删除",
+                                    tint = textColor,
+                                    modifier = Modifier
+                                        .size(20.dp)
+                                        .clickable { onDelete(habit.id) }
+                                )
+                            }
+                            
                             Icon(
                                 Icons.AutoMirrored.Filled.ArrowForward,
                                 contentDescription = null,
                                 tint = if (habit.completed) Color(0xFF4B5563) else BrutalColors.Black,
                                 modifier = Modifier.size(32.dp)
                             )
-                            BrutalProgressCheckbox(
-                                completed = habit.completed,
-                                progress = habit.progress,
-                                target = habit.targetValue,
-                                onProgress = { onProgress(habit.id) }
-                            )
+                            
+                            // Checkbox: 仅 today 可操作
+                            if (isToday) {
+                                BrutalProgressCheckbox(
+                                    completed = habit.completed,
+                                    progress = habit.progress,
+                                    target = habit.targetValue,
+                                    onProgress = { onProgress(habit.id) }
+                                )
+                            } else {
+                                // Read-only visual using Checkbox style or custom?
+                                // Let's use Checkbox but disable click? BrutalProgressCheckbox implies click handling.
+                                // We can wrap it in a Box consuming clicks or just don't pass onProgress?
+                                // BrutalProgressCheckbox(..., onProgress = {})
+                                BrutalProgressCheckbox(
+                                    completed = habit.completed,
+                                    progress = habit.progress,
+                                    target = habit.targetValue,
+                                    onProgress = { /* Read only */ }
+                                )
+                            }
                         }
                     }
                 }

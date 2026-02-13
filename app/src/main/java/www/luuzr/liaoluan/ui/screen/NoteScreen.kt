@@ -1,6 +1,7 @@
 package www.luuzr.liaoluan.ui.screen
 
 import android.net.Uri
+import androidx.compose.ui.draw.clipToBounds // Add this
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
@@ -399,6 +400,7 @@ private fun NoteContentRenderer(
                             .heightIn(max = 200.dp)
                             .border(3.dp, BrutalColors.Black)
                             .background(BrutalColors.White)
+                            .clipToBounds() // Use imported extension
                     )
                 }
             } else if (text.isNotEmpty()) {

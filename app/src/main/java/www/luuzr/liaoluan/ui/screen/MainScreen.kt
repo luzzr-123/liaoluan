@@ -169,6 +169,7 @@ fun MainScreen(
                         onEdit = viewModel::openEditModal
                     )
                     1 -> HabitScreen(
+                        viewModel = viewModel,
                         habits = habits,
                         onProgress = viewModel::progressHabit,
                         onDelete = viewModel::deleteHabit,
@@ -350,7 +351,7 @@ private fun TabBar(currentTab: Int, onTabSelected: (Int) -> Unit) {
                 modifier = Modifier
                     .weight(1f)
                     .then(
-                        if (isSelected) Modifier.height(64.dp) else Modifier.height(56.dp)
+                        if (isSelected) Modifier.height(72.dp) else Modifier.height(64.dp)
                     )
                     .background(if (isSelected) color else BrutalColors.LightGray)
                     .clickable { onTabSelected(index) },
@@ -392,7 +393,7 @@ private fun TabBar(currentTab: Int, onTabSelected: (Int) -> Unit) {
                 Box(
                     modifier = Modifier
                         .width(4.dp)
-                        .height(if (isSelected) 64.dp else 56.dp)
+                        .height(if (isSelected) 72.dp else 64.dp)
                         .background(BrutalColors.Black)
                 )
             }

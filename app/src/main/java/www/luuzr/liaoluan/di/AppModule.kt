@@ -11,6 +11,7 @@ import www.luuzr.liaoluan.data.db.BrutalDatabase
 import www.luuzr.liaoluan.data.db.dao.HabitDao
 import www.luuzr.liaoluan.data.db.dao.NoteDao
 import www.luuzr.liaoluan.data.db.dao.TaskDao
+import www.luuzr.liaoluan.data.db.dao.HabitLogsDao // Add this
 import javax.inject.Singleton
 
 /**
@@ -41,6 +42,10 @@ object AppModule {
 
     @Provides
     fun provideNoteDao(db: BrutalDatabase): NoteDao = db.noteDao()
+
+    @Provides
+    fun provideHabitLogsDao(db: BrutalDatabase): www.luuzr.liaoluan.data.db.dao.HabitLogsDao = db.habitLogsDao()
+
 
     @Provides
     @Singleton
