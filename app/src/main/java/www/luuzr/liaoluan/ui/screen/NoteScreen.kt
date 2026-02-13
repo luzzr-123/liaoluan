@@ -58,60 +58,59 @@ fun NoteScreen(
     }
 
     // 详情页模态框
+    // 详情页模态框 (Overlay)
     var selectedNote by remember { mutableStateOf<Note?>(null) }
-
-    val currentNote = selectedNote
-    if (currentNote != null) {
-        www.luuzr.liaoluan.ui.modal.NoteDetailModal(
-            note = currentNote,
-            onClose = { selectedNote = null }
-        )
-    }
 
     Box(
         modifier = modifier
             .fillMaxSize()
             .background(BrutalColors.NoteYellow)
-            .padding(horizontal = 16.dp)
     ) {
-        if (sortedNotes.isEmpty()) {
-            Text(
-                text = "空空如也",
-                fontWeight = FontWeight.Black,
-                fontSize = 48.sp,
-                color = BrutalColors.Black.copy(alpha = 0.2f),
-                modifier = Modifier
-                    .align(Alignment.Center)
-                    .rotate(12f)
-            )
-        } else {
-            LazyColumn(
-                modifier = Modifier
-                    .fillMaxSize()
-                    .padding(top = 16.dp), // Reduced top padding
-                contentPadding = PaddingValues(bottom = 120.dp),
-                verticalArrangement = Arrangement.spacedBy(24.dp)
-            ) {
-                items(sortedNotes, key = { it.id }) { note ->
-                    NoteCard(
-                        note = note,
-                        onDelete = onDelete,
-                        onEdit = onEdit,
-                        onExportNote = onExportNote,
-                        onTogglePin = onTogglePin,
-                        onClick = { selectedNote = note }
+        // 1. 笔记列表内容
+        Column(
+            modifier = Modifier
+                .fillMaxSize()
+                .padding(horizontal = 16.dp)
+        ) {
+             if (sortedNotes.isEmpty()) {
+                Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
+                    Text(
+                        text = "空空如也",
+                        fontWeight = FontWeight.Black,
+                        fontSize = 48.sp,
+                        color = BrutalColors.Black.copy(alpha = 0.2f),
+                        modifier = Modifier.rotate(12f)
                     )
+                }
+            } else {
+                LazyColumn(
+                    modifier = Modifier
+                        .fillMaxSize()
+                        .padding(top = 16.dp),
+                    contentPadding = PaddingValues(bottom = 120.dp),
+                    verticalArrangement = Arrangement.spacedBy(24.dp)
+                ) {
+                    items(sortedNotes, key = { it.id }) { note ->
+                        NoteCard(
+                            note = note,
+                            onDelete = onDelete,
+                            onEdit = onEdit,
+                            onExportNote = onExportNote,
+                            onTogglePin = onTogglePin,
+                            onClick = { selectedNote = note }
+                        )
+                    }
                 }
             }
         }
 
-        // Settings Button (Moved to end for Z-Index)
+        // 2. Settings Button (Moved to end for Z-Index)
         Box(
             modifier = Modifier
                 .align(Alignment.TopEnd)
-                .padding(top = 16.dp)
+                .padding(top = 16.dp, end = 16.dp) // Fix padding
                 .size(40.dp)
-                .background(BrutalColors.White) // Added background to cover content
+                .background(BrutalColors.White)
                 .border(3.dp, BrutalColors.Black)
                 .clickable { onOpenSettings() },
             contentAlignment = Alignment.Center
@@ -122,6 +121,21 @@ fun NoteScreen(
                 tint = BrutalColors.Black,
                 modifier = Modifier.size(24.dp)
             )
+        }
+        
+        // 3. 详情页 Overlay (使用 AnimatedVisibility)
+        androidx.compose.animation.AnimatedVisibility(
+            visible = selectedNote != null,
+            enter = androidx.compose.animation.slideInVertically(initialOffsetY = { it }) + androidx.compose.animation.fadeIn(),
+            exit = androidx.compose.animation.slideOutVertically(targetOffsetY = { it }) + androidx.compose.animation.fadeOut(),
+            modifier = Modifier.align(Alignment.Center)
+        ) {
+            selectedNote?.let { note ->
+                www.luuzr.liaoluan.ui.modal.NoteDetailModal(
+                    note = note,
+                    onClose = { selectedNote = null }
+                )
+            }
         }
     }
 }

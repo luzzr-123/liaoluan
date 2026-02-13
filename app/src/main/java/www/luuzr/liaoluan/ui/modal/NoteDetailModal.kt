@@ -22,8 +22,8 @@ import androidx.compose.ui.text.font.FontFamily
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
-import androidx.compose.ui.window.Dialog
-import androidx.compose.ui.window.DialogProperties
+// import androidx.compose.ui.window.Dialog (Removed)
+// import androidx.compose.ui.window.DialogProperties (Removed)
 import coil.compose.AsyncImage
 import coil.request.ImageRequest
 import www.luuzr.liaoluan.data.model.Note
@@ -34,82 +34,80 @@ fun NoteDetailModal(
     note: Note,
     onClose: () -> Unit
 ) {
-    Dialog(
-        onDismissRequest = onClose,
-        properties = DialogProperties(usePlatformDefaultWidth = false) // 全屏
+    // 移除 Dialog，改为纯 Composable (将在 NoteScreen 中配合 AnimatedVisibility 使用)
+    // 全屏遮罩 + 内容
+    Box(
+        modifier = Modifier
+            .fillMaxSize()
+            .background(BrutalColors.White) // 全白背景，覆盖原界面，解决状态栏灰色问题
+            .clickable(enabled = true, onClick = {}) // 拦截点击
+            .padding(16.dp),
+        contentAlignment = Alignment.Center
     ) {
-        Box(
+        // Paper-like Frame
+        Column(
             modifier = Modifier
                 .fillMaxSize()
-                .background(BrutalColors.Black.copy(alpha = 0.8f))
-                .padding(16.dp),
-            contentAlignment = Alignment.Center
+                .background(Color(0xFFFCFBF4)) // Warm paper color
+                .border(4.dp, BrutalColors.Black)
+                .padding(20.dp)
         ) {
-            // Paper-like Frame
+            // Header
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.SpaceBetween,
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                Text(
+                    text = note.title.ifEmpty { "无标题" },
+                    fontWeight = FontWeight.Black,
+                    fontSize = 28.sp,
+                    color = BrutalColors.Black,
+                    modifier = Modifier.weight(1f)
+                )
+                
+                Box(
+                    modifier = Modifier
+                        .size(36.dp)
+                        .background(BrutalColors.Black)
+                        .border(2.dp, BrutalColors.Black)
+                        .clickable { onClose() },
+                    contentAlignment = Alignment.Center
+                ) {
+                    Icon(
+                        Icons.Default.Close,
+                        contentDescription = "Close",
+                        tint = BrutalColors.White,
+                        modifier = Modifier.size(20.dp)
+                    )
+                }
+            }
+            
+            Spacer(modifier = Modifier.height(2.dp))
+            // Decorative line under title
+            Box(modifier = Modifier.fillMaxWidth().height(4.dp).background(BrutalColors.Black))
+            Spacer(modifier = Modifier.height(20.dp))
+            
+            // Content
             Column(
                 modifier = Modifier
                     .fillMaxSize()
-                    .background(Color(0xFFFCFBF4)) // Warm paper color
-                    .border(4.dp, BrutalColors.Black)
-                    .padding(20.dp)
+                    .verticalScroll(rememberScrollState()),
+                verticalArrangement = Arrangement.spacedBy(16.dp)
             ) {
-                // Header
-                Row(
-                    modifier = Modifier.fillMaxWidth(),
-                    horizontalArrangement = Arrangement.SpaceBetween,
-                    verticalAlignment = Alignment.CenterVertically
-                ) {
-                    Text(
-                        text = note.title.ifEmpty { "无标题" },
-                        fontWeight = FontWeight.Black,
-                        fontSize = 28.sp,
-                        color = BrutalColors.Black,
-                        modifier = Modifier.weight(1f)
-                    )
-                    
-                    Box(
-                        modifier = Modifier
-                            .size(36.dp)
-                            .background(BrutalColors.Black)
-                            .border(2.dp, BrutalColors.Black)
-                            .clickable { onClose() },
-                        contentAlignment = Alignment.Center
-                    ) {
-                        Icon(
-                            Icons.Default.Close,
-                            contentDescription = "Close",
-                            tint = BrutalColors.White,
-                            modifier = Modifier.size(20.dp)
-                        )
-                    }
-                }
+                NoteContentRendererFull(note)
                 
-                Spacer(modifier = Modifier.height(2.dp))
-                // Decorative line under title
-                Box(modifier = Modifier.fillMaxWidth().height(4.dp).background(BrutalColors.Black))
-                Spacer(modifier = Modifier.height(20.dp))
+                Spacer(modifier = Modifier.height(24.dp))
                 
-                // Content
-                Column(
-                    modifier = Modifier
-                        .fillMaxSize()
-                        .verticalScroll(rememberScrollState()),
-                    verticalArrangement = Arrangement.spacedBy(16.dp)
-                ) {
-                    NoteContentRendererFull(note)
-                    
-                    Spacer(modifier = Modifier.height(24.dp))
-                    
-                     // Date at bottom
-                    Text(
-                        text = "创建于: ${www.luuzr.liaoluan.util.DateHandle.formatDateTime(note.createdAt)}",
-                        fontFamily = FontFamily.Monospace,
-                        fontWeight = FontWeight.Bold,
-                        color = BrutalColors.Black.copy(alpha = 0.5f),
-                        fontSize = 12.sp,
-                        modifier = Modifier.align(Alignment.End)
-                    )
-                }
+                 // Date at bottom
+                Text(
+                    text = "创建于: ${www.luuzr.liaoluan.util.DateHandle.formatDateTime(note.createdAt)}",
+                    fontFamily = FontFamily.Monospace,
+                    fontWeight = FontWeight.Bold,
+                    color = BrutalColors.Black.copy(alpha = 0.5f),
+                    fontSize = 12.sp,
+                    modifier = Modifier.align(Alignment.End)
+                )
             }
         }
     }

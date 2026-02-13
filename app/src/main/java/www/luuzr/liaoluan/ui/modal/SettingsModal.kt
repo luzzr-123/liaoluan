@@ -19,6 +19,8 @@ import androidx.compose.ui.unit.sp
 import androidx.compose.ui.text.font.FontWeight
 import www.luuzr.liaoluan.ui.component.BrutalButton
 import www.luuzr.liaoluan.ui.theme.BrutalColors
+import androidx.compose.foundation.interaction.MutableInteractionSource
+import androidx.compose.runtime.remember
 
 /**
  * 设置弹窗 — 对应原型的 SettingsModal
@@ -33,11 +35,16 @@ fun SettingsModal(
     onExport: () -> Unit,
     onImport: () -> Unit
 ) {
+
     Box(
         modifier = Modifier
             .fillMaxSize()
-            .background(BrutalColors.Black.copy(alpha = 0.8f))
-            .clickable(onClick = {}) // 消费点击事件，防止穿透
+            .background(BrutalColors.White) // Changed from Black alpha 0.8f to White opaque
+            .clickable(
+                interactionSource = remember { MutableInteractionSource() },
+                indication = null, // Disable ripple "wave" effect on background click
+                onClick = {}
+            )
     ) {
         // 设置面板 — 居中白色卡片
         Box(
