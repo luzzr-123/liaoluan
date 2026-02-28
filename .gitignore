@@ -1,0 +1,35 @@
+*.iml
+.gradle
+/local.properties
+/.idea/caches
+/.idea/libraries
+/.idea/modules.xml
+/.idea/workspace.xml
+/.idea/navEditor.xml
+/.idea/assetWizardSettings.xml
+.DS_Store
+build/
+**/build/
+/captures
+.externalNativeBuild
+.cxx
+local.properties
+.idea
+*.jks
+*.keystore
+
+# Build outputs & logs
+build_log*.txt
+build_output*.txt
+*.log
+
+# APK/AAB
+*.apk
+*.aab
+*.ap_
+
+# Crash logs (generated at runtime)
+crash_logs/
+
+# OS
+Thumbs.db
