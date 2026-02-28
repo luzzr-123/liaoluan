@@ -39,24 +39,30 @@ class AlarmReceiver : BroadcastReceiver() {
                 val habits = repository.habits.firstOrNull() ?: return@launch
                 
                 when (action) {
-                    Intent.ACTION_DATE_CHANGED, Intent.ACTION_TIMEZONE_CHANGED -> {
+                    Intent.ACTION_DATE_CHANGED, Intent.ACTION_TIMEZONE_CHANGED, 
+                    Intent.ACTION_TIME_CHANGED, Intent.ACTION_BOOT_COMPLETED,
+                    "android.intent.action.QUICKBOOT_POWERON", "android.intent.action.MY_PACKAGE_REPLACED" -> {
                          val today = www.luuzr.liaoluan.util.DateHandle.todayDate()
                          
                          habits.forEach { h -> 
+                             var updatedHabit = h
                              if (h.lastCompletedDate.isNotEmpty() && h.lastCompletedDate != today) {
                                  // P1-2 Fix: 正确计算这期间是否错过了任何应该打卡的日子
                                  val isBroken = isStreakBroken(h, today)
                                  
                                  if (h.progress > 0 || h.completed) {
-                                     repository.updateHabit(
-                                         h.copy(
-                                             progress = 0, 
-                                             completed = false, 
-                                             streakDays = if (isBroken) 0 else h.streakDays, 
-                                             actualStartTime = 0L
-                                         )
+                                     updatedHabit = h.copy(
+                                         progress = 0, 
+                                         completed = false, 
+                                         streakDays = if (isBroken) 0 else h.streakDays, 
+                                         actualStartTime = 0L
                                      )
+                                     repository.updateHabit(updatedHabit)
                                  }
+                             }
+                             // 核心防护：无论由于开机、强杀、时间重设，都在此处重新激活并补全 Alarm 长链调度池
+                             if (updatedHabit.habitType == "DURATION") {
+                                 ExactAlarmHelper.scheduleHabitPreAlarm(context, updatedHabit)
                              }
                          }
                     }
@@ -65,22 +71,30 @@ class AlarmReceiver : BroadcastReceiver() {
                         if (habitId == -1L) return@launch
                         val habit = habits.find { it.id == habitId } ?: return@launch
 
-                        if (habit.completed) return@launch
+                        val today = www.luuzr.liaoluan.util.DateHandle.todayDate()
+                        // 剔除了历史残留中的 `if (habit.completed) return` 防止调度直接切断
+                        // 引入精确的天数比较，以容忍极端情况下的 DateChange 缺席
+                        val isCompletedToday = habit.completed && habit.lastCompletedDate == today
 
                         when (action) {
                             ACTION_HABIT_PRE_ALARM -> {
-                                val calendar = java.util.Calendar.getInstance()
-                                val dayOfWeek = calendar.get(java.util.Calendar.DAY_OF_WEEK)
-                                val currentDayIndex = (dayOfWeek - 2 + 7) % 7
-                                if (habit.frequency.contains(currentDayIndex) && habit.habitType == "DURATION") {
-                                    val fakeHabitForNotification = habit.copy(
-                                        motivation = "预热! 你的习惯 '${habit.text}' 将在 5 分钟后开始！"
-                                    )
-                                    NotificationHelper.showHabitNotification(context, fakeHabitForNotification)
-                                }
+                                // 必须无条件重新执行本前置调度，防止 AlarmManager 丢失单链！
                                 ExactAlarmHelper.scheduleHabitPreAlarm(context, habit)
+
+                                if (!isCompletedToday) {
+                                    val calendar = java.util.Calendar.getInstance()
+                                    val dayOfWeek = calendar.get(java.util.Calendar.DAY_OF_WEEK)
+                                    val currentDayIndex = (dayOfWeek - 2 + 7) % 7
+                                    if (habit.frequency.contains(currentDayIndex) && habit.habitType == "DURATION") {
+                                        val fakeHabitForNotification = habit.copy(
+                                            motivation = "预热! 你的习惯 '${habit.text}' 将在 5 分钟后开始！"
+                                        )
+                                        NotificationHelper.showHabitNotification(context, fakeHabitForNotification)
+                                    }
+                                }
                             }
                             ACTION_HABIT_PROCESS_ALARM -> {
+                                if (isCompletedToday) return@launch
                                 if (habit.actualStartTime > 0L) {
                                     val fakeHabitForNotification = habit.copy(
                                         motivation = "保持专注! '${habit.text}' 正在进行中..."
@@ -90,6 +104,7 @@ class AlarmReceiver : BroadcastReceiver() {
                                 }
                             }
                             ACTION_HABIT_END_ALARM -> {
+                                if (isCompletedToday) return@launch
                                 if (habit.actualStartTime > 0L) {
                                     val fakeHabitForNotification = habit.copy(
                                         motivation = "太棒了! '${habit.text}' 的时长目标已达成！点击结束记录。"
