@@ -11,11 +11,12 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.CalendarToday
 import androidx.compose.material.icons.filled.Delete
 import androidx.compose.material3.HorizontalDivider
+import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
 import androidx.compose.material3.Text
-import androidx.compose.runtime.Composable
-import androidx.compose.runtime.getValue
+import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
+import androidx.compose.foundation.lazy.LazyRow
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.rotate
 import androidx.compose.ui.graphics.Color
@@ -45,8 +46,24 @@ fun TaskScreen(
     onEdit: (Task) -> Unit,
     modifier: Modifier = Modifier
 ) {
-    // 过滤已完成任务
-    val activeTasks = tasks.filter { !it.completed }
+    var selectedTag by remember { mutableStateOf("全部") }
+    var showCompleted by remember { mutableStateOf(false) }
+    val tags = listOf("全部", "工作", "生活", "紧急", "学习")
+
+    // 过滤任务
+    val filteredTasks = tasks.filter { task ->
+        val matchTag = selectedTag == "全部" || task.tag == selectedTag
+        val matchStatus = if (showCompleted) true else !task.completed
+        matchTag && matchStatus
+    }.sortedBy { it.completed } // completed at the bottom
+
+    var currentTime by remember { mutableStateOf(System.currentTimeMillis()) }
+    LaunchedEffect(Unit) {
+        while(true) {
+            kotlinx.coroutines.delay(60000)
+            currentTime = System.currentTimeMillis()
+        }
+    }
 
     Box(
         modifier = modifier
@@ -54,30 +71,80 @@ fun TaskScreen(
             .background(BrutalColors.TaskRed)
             .padding(horizontal = 16.dp)
     ) {
-        // 标题标签 — 倾斜的白色标签
-        // Header removed
-
-        // 任务列表
-        if (activeTasks.isEmpty()) {
-            Text(
-                text = "空空如也",
-                fontWeight = FontWeight.Black,
-                fontSize = 48.sp,
-                color = BrutalColors.Black.copy(alpha = 0.2f),
+        Column(modifier = Modifier.fillMaxSize()) {
+            // 功能区: 标签 + 历史
+            Row(
                 modifier = Modifier
-                    .align(Alignment.Center)
-                    .rotate(12f)
-            )
-        } else {
-            LazyColumn(
-                modifier = Modifier
-                    .fillMaxSize()
-                    .padding(top = 16.dp),
-                contentPadding = PaddingValues(bottom = 120.dp),
-                verticalArrangement = Arrangement.spacedBy(16.dp)
+                    .fillMaxWidth()
+                    .padding(top = 16.dp, bottom = 8.dp),
+                horizontalArrangement = Arrangement.SpaceBetween,
+                verticalAlignment = Alignment.CenterVertically
             ) {
-                items(activeTasks, key = { it.id }) { task ->
-                    TaskCard(task, onToggle, onDelete, onEdit)
+                LazyRow(
+                    modifier = Modifier.weight(1f),
+                    horizontalArrangement = Arrangement.spacedBy(8.dp)
+                ) {
+                    items(tags, key={it}) { tag ->
+                        val isSelected = tag == selectedTag
+                        Box(
+                            modifier = Modifier
+                                .background(if (isSelected) BrutalColors.Black else BrutalColors.White)
+                                .border(2.dp, BrutalColors.Black)
+                                .clickable { selectedTag = tag }
+                                .padding(horizontal = 12.dp, vertical = 6.dp)
+                        ) {
+                            Text(
+                                text = tag,
+                                color = if (isSelected) BrutalColors.White else BrutalColors.Black,
+                                fontWeight = FontWeight.Bold,
+                                fontSize = 14.sp
+                            )
+                        }
+                    }
+                }
+
+                Spacer(modifier = Modifier.width(12.dp))
+
+                Box(
+                    modifier = Modifier
+                        .background(if (showCompleted) BrutalColors.Black else BrutalColors.LightGray)
+                        .border(2.dp, BrutalColors.Black)
+                        .clickable { showCompleted = !showCompleted }
+                        .padding(horizontal = 12.dp, vertical = 6.dp)
+                ) {
+                    Text(
+                        text = "归档",
+                        color = if (showCompleted) BrutalColors.White else BrutalColors.Black,
+                        fontWeight = FontWeight.Bold,
+                        fontSize = 14.sp
+                    )
+                }
+            }
+
+            // 任务列表
+            if (filteredTasks.isEmpty()) {
+                Box(modifier = Modifier.weight(1f).fillMaxWidth(), contentAlignment = Alignment.Center) {
+                    Text(
+                        text = "空空如也",
+                        fontWeight = FontWeight.Black,
+                        fontSize = 48.sp,
+                        color = BrutalColors.Black.copy(alpha = 0.2f),
+                        modifier = Modifier
+                            .align(Alignment.Center)
+                            .rotate(12f)
+                    )
+                }
+            } else {
+                LazyColumn(
+                    modifier = Modifier
+                        .weight(1f)
+                        .fillMaxWidth(),
+                    contentPadding = PaddingValues(bottom = 120.dp, top = 8.dp),
+                    verticalArrangement = Arrangement.spacedBy(16.dp)
+                ) {
+                    items(filteredTasks, key = { it.id }) { task ->
+                        TaskCard(task, onToggle, onDelete, onEdit, currentTime)
+                    }
                 }
             }
         }
@@ -89,7 +156,8 @@ private fun TaskCard(
     task: Task,
     onToggle: (Long, Boolean) -> Unit,
     onDelete: (Long) -> Unit,
-    onEdit: (Task) -> Unit
+    onEdit: (Task) -> Unit,
+    currentTime: Long
 ) {
     val bgColor by animateColorAsState(
         if (task.completed) BrutalColors.Black else BrutalColors.White, label = "taskBg"
@@ -202,11 +270,27 @@ private fun TaskCard(
                             tint = textColor.copy(alpha = 0.8f),
                             modifier = Modifier.size(16.dp)
                         )
+                        val dateStr = if (task.dueTimestamp > 0) www.luuzr.liaoluan.util.DateHandle.formatDateTime(task.dueTimestamp) else "无截止"
+                        
+                        val countdownText = if (!task.completed && task.dueTimestamp > 0) {
+                            if (task.dueTimestamp > currentTime) {
+                                val diffMin = (task.dueTimestamp - currentTime) / 60000L
+                                val days = diffMin / (24 * 60)
+                                val hours = (diffMin % (24 * 60)) / 60
+                                val mins = diffMin % 60
+                                if (days > 0) "剩${days}天${hours}时" 
+                                else if (hours > 0) "剩${hours}时${mins}分"
+                                else "剩${mins}分!"
+                            } else {
+                                "已逾期"
+                            }
+                        } else ""
+
                         Text(
-                            text = task.dueDate.ifEmpty { "无截止" },
+                            text = if (countdownText.isNotEmpty()) "$dateStr ($countdownText)" else dateStr,
                             fontWeight = FontWeight.Bold,
                             fontSize = 14.sp,
-                            color = textColor.copy(alpha = 0.8f)
+                            color = if (countdownText == "已逾期") Color(0xFFD32F2F) else textColor.copy(alpha = 0.8f)
                         )
                     }
 

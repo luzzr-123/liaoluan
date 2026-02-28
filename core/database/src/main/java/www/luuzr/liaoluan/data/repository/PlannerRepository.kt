@@ -3,6 +3,7 @@ package www.luuzr.liaoluan.data.repository
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.map
 import androidx.room.Transaction
+import androidx.room.withTransaction
 import kotlinx.serialization.encodeToString
 import kotlinx.serialization.decodeFromString
 import kotlinx.serialization.json.Json
@@ -23,6 +24,7 @@ import javax.inject.Singleton
  */
 @Singleton
 class PlannerRepository @Inject constructor(
+    private val database: www.luuzr.liaoluan.data.db.BrutalDatabase,
     private val taskDao: TaskDao,
     private val habitDao: HabitDao,
     private val noteDao: NoteDao,
@@ -88,21 +90,22 @@ class PlannerRepository @Inject constructor(
     suspend fun deleteAllHabitLogs() = habitLogsDao.deleteAllLogs()
 
     // C3 Fix: 事务保护的全量数据替换，避免 deleteAll 后崩溃导致数据清零
-    @Transaction
     suspend fun replaceAllData(
         tasks: List<Task>,
         habits: List<Habit>,
         notes: List<Note>,
         habitLogs: List<HabitLogEntity>
     ) {
-        taskDao.deleteAll()
-        habitDao.deleteAll()
-        noteDao.deleteAll()
-        habitLogsDao.deleteAllLogs()
-        taskDao.insertAll(tasks.map { it.toEntity() })
-        habitDao.insertAll(habits.map { it.toEntity() })
-        noteDao.insertAll(notes.map { it.toEntity() })
-        habitLogsDao.insertAllLogs(habitLogs)
+        database.withTransaction {
+            taskDao.deleteAll()
+            habitDao.deleteAll()
+            noteDao.deleteAll()
+            habitLogsDao.deleteAllLogs()
+            taskDao.insertAll(tasks.map { it.toEntity() })
+            habitDao.insertAll(habits.map { it.toEntity() })
+            noteDao.insertAll(notes.map { it.toEntity() })
+            habitLogsDao.insertAllLogs(habitLogs)
+        }
     }
 
     // ==================== 映射扩展函数 ====================

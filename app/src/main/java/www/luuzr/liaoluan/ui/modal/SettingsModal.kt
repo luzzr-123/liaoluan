@@ -37,6 +37,7 @@ fun SettingsModal(
     onImport: () -> Unit,
     onManageHabits: () -> Unit
 ) {
+    BackHandler { onClose() }
 
     Box(
         modifier = Modifier

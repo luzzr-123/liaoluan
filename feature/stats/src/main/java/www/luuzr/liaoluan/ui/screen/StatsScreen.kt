@@ -40,6 +40,8 @@ fun StatsScreen(
     onBack: () -> Unit,
     viewModel: StatsViewModel = hiltViewModel()
 ) {
+    BackHandler { onBack() }
+    
     val viewState by viewModel.viewState.collectAsState()
     val habits = viewState.habits
     val logsForMonth = viewState.logsForMonth

@@ -31,7 +31,7 @@ class HabitTimerService : Service() {
         const val EXTRA_PROGRESS = "EXTRA_PROGRESS"     // 已记录的进度 (分钟)
         
         private const val NOTIFICATION_ID = 9999
-        private const val CHANNEL_ID = "habit_timer_channel"
+        private const val CHANNEL_ID = www.luuzr.liaoluan.util.NotificationHelper.CHANNEL_ID_HABIT
     }
 
     override fun onStartCommand(intent: Intent?, flags: Int, startId: Int): Int {
@@ -53,7 +53,6 @@ class HabitTimerService : Service() {
     }
 
     private fun startForegroundTimer(habitId: Long, habitName: String, elapsedBase: Long, initialProgressMinutes: Int) {
-        createNotificationChannel()
         
         val notification = createNotification(habitName, "00:00")
         
@@ -102,20 +101,6 @@ class HabitTimerService : Service() {
             .setPriority(NotificationCompat.PRIORITY_HIGH)
             .setCategory(NotificationCompat.CATEGORY_ALARM)
             .build()
-    }
-
-    private fun createNotificationChannel() {
-        // M3 Fix: minSdk=26 已保证 >= O，无需版本判断
-        val channel = NotificationChannel(
-            CHANNEL_ID,
-            "专注计时提醒",
-            NotificationManager.IMPORTANCE_HIGH
-        ).apply {
-            description = "正在执行时长习惯时的前台保活通知"
-            setSound(null, null) 
-        }
-        val manager = getSystemService(NotificationManager::class.java)
-        manager.createNotificationChannel(channel)
     }
 
     override fun onDestroy() {

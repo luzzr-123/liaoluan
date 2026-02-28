@@ -197,30 +197,11 @@ private fun NoteCard(
     var expanded by remember { mutableStateOf(false) }
 
     // 可点击卡片
-    Box(
-        modifier = Modifier.clickable { 
-            // In preview mode, clicking card expands it? Or opens detail?
-            // Requirement says: "Expand function key... Expand can be done without entering detail page"
-            // So clicking the card body can still open detail or just toggle?
-            // Let's make the "Expand Button" toggle expansion. The card body click opens detail.
-            onClick() 
-        }
-    ) {
+    Box {
         // EditableCard 逻辑需调整，不再直接包裹内容，而是作为内容的一部分
         // 但为了复用 EditableCard 的样式，我们保留它，但在内部处理点击
         
          EditableCard(onEdit = { onEdit(note) }) {
-             // ... inside EditableCard
-             // Since EditableCard might consume clicks, we need to be careful.
-             // Actually EditableCard is a wrapper that adds the "Edit" button logic usually?
-             // Checking EditableCard implementation... 
-             // Wait, EditableCard usually handles long press or specific edit button?
-             // Let's assume EditableCard is just the visual wrapper with edit action.
-             // If EditableCard has its own click listener, we might have conflict.
-             // Simple approach: Pass onClick to EditableCard or just wrap content.
-             // Looking at previous code: EditableCard(onEdit = { onEdit(note) }) { ... }
-             // I will assume EditableCard exposes content.
-             // To support "Click to view detail", I'll make the inner Box clickable or the whole Card.
         
             Box(
                 modifier = Modifier.clickable { onClick() }

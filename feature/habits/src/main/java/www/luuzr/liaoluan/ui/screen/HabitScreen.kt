@@ -370,14 +370,14 @@ private fun HabitCard(
                                             }
                                         } else {
                                             // Started, ticking
-                                            var currentTime by remember { mutableStateOf(System.currentTimeMillis()) }
+                                            var currentElapsed by remember { mutableStateOf(android.os.SystemClock.elapsedRealtime()) }
                                             androidx.compose.runtime.LaunchedEffect(Unit) {
                                                 while(true) {
-                                                    currentTime = System.currentTimeMillis()
+                                                    currentElapsed = android.os.SystemClock.elapsedRealtime()
                                                     delay(1000)
                                                 }
                                             }
-                                            val elapsedMs = currentTime - habit.actualStartTime + (habit.progress * 60000L)
+                                            val elapsedMs = currentElapsed - habit.actualStartTime + (habit.progress * 60000L)
                                             val elapsedMin = (elapsedMs / 1000) / 60
                                             val elapsedSec = (elapsedMs / 1000) % 60
                                             val timeStr = "%02d:%02d".format(elapsedMin, elapsedSec)

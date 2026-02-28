@@ -34,6 +34,6 @@ data class MainViewState(
     // 衍生数据与查询状态
     val noteSearchQuery: String = "",
     val filteredNotes: List<Note> = emptyList(),
-    val selectedDate: String = www.luuzr.liaoluan.util.DateHandle.todayDate(),
+    val selectedDate: String = "",
     val visibleHabits: List<Habit> = emptyList()
 )

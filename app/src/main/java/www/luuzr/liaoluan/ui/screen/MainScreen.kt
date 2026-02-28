@@ -382,10 +382,12 @@ fun MainScreen(
             SettingsModal(
                 onClose = { viewModel.processIntent(www.luuzr.liaoluan.ui.viewmodel.MainIntent.ToggleSettings) },
                 onExport = {
+                    viewModel.processIntent(www.luuzr.liaoluan.ui.viewmodel.MainIntent.ToggleSettings)
                     scope.launch {
                         pendingExportJson = viewModel.getBackupJson()
-                        exportLauncher.launch("brutal_backup_${System.currentTimeMillis()}.json")
-                        viewModel.processIntent(www.luuzr.liaoluan.ui.viewmodel.MainIntent.ToggleSettings)
+                        if (pendingExportJson.isNotEmpty()) {
+                            exportLauncher.launch("brutal_backup_${System.currentTimeMillis()}.json")
+                        }
                     }
                 },
                 onImport = {

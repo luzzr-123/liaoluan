@@ -24,6 +24,9 @@ import java.util.Calendar
 import java.util.Locale
 import javax.inject.Inject
 
+import androidx.compose.runtime.Immutable
+
+@Immutable
 data class ToastData(
     val message: String,
     val onUndo: (() -> Unit)? = null
@@ -40,8 +43,8 @@ class MainViewModel @Inject constructor(
     val viewState: StateFlow<MainViewState> = _viewState.asStateFlow()
 
     init {
+        _viewState.update { it.copy(selectedDate = DateHandle.todayDate()) }
         observeData()
-        // BUG-5 Fix: checkCrossDayReset 移到 habits flow 首次 emit 后触发
     }
 
     private fun observeData() {
@@ -179,33 +182,20 @@ class MainViewModel @Inject constructor(
              
              val today = DateHandle.todayDate()
              habitsSnapshot.forEach { habit ->
-                 if (habit.lastCompletedDate.isNotEmpty() && habit.lastCompletedDate != today && habit.progress > 0) {
-                     val yesterday = Calendar.getInstance().apply { add(Calendar.DAY_OF_YEAR, -1) }.time
-                     val yesterdayStr = SimpleDateFormat("yyyy-MM-dd", Locale.US).format(yesterday)
-                     val isBroken = habit.lastCompletedDate != yesterdayStr && habit.lastCompletedDate != today
-                     val newStreak = if (isBroken) 0 else habit.streakDays
+                 if (habit.lastCompletedDate.isNotEmpty() && habit.lastCompletedDate != today) {
+                     // P1-2 Fix: 正确计算遗漏日志以判断连击破局
+                     val isBroken = isStreakBroken(habit, today)
 
-                     repository.updateHabit(
-                         habit.copy(
-                             progress = 0,
-                             completed = false,
-                             streakDays = newStreak,
-                             actualStartTime = 0L
+                     if (habit.progress > 0 || habit.completed) {
+                         repository.updateHabit(
+                             habit.copy(
+                                 progress = 0,
+                                 completed = false,
+                                 streakDays = if (isBroken) 0 else habit.streakDays,
+                                 actualStartTime = 0L
+                             )
                          )
-                     )
-                 } else if (habit.lastCompletedDate.isNotEmpty() && habit.lastCompletedDate != today && habit.completed) {
-                       val yesterday = Calendar.getInstance().apply { add(Calendar.DAY_OF_YEAR, -1) }.time
-                       val yesterdayStr = SimpleDateFormat("yyyy-MM-dd", Locale.US).format(yesterday)
-                       val isBroken = habit.lastCompletedDate != yesterdayStr
-                      
-                      repository.updateHabit(
-                          habit.copy(
-                              progress = 0,
-                              completed = false,
-                              streakDays = if (isBroken) 0 else habit.streakDays,
-                              actualStartTime = 0L
-                          )
-                      )
+                     }
                  }
              }
 
@@ -582,6 +572,14 @@ class MainViewModel @Inject constructor(
                     notes = backup.notes ?: emptyList(),
                     habitLogs = backup.habitLogs ?: emptyList()
                 )
+                
+                // P2-5 Fix: 全量导入后重新调度习惯闹钟
+                backup.habits?.forEach { habit ->
+                    if (habit.habitType == "DURATION") {
+                        ExactAlarmHelper.scheduleHabitPreAlarm(app, habit)
+                    }
+                }
+                
                 showToast("全量数据恢复成功")
             }
             _viewState.update { it.copy(showSettings = false) }
@@ -704,5 +702,37 @@ class MainViewModel @Inject constructor(
         }
     }
 
-
+    private fun isStreakBroken(habit: Habit, today: String): Boolean {
+        if (habit.lastCompletedDate.isEmpty()) return false
+        
+        try {
+            val sdf = java.text.SimpleDateFormat("yyyy-MM-dd", java.util.Locale.getDefault())
+            val lastDate = sdf.parse(habit.lastCompletedDate) ?: return false
+            val currentDate = sdf.parse(today) ?: return false
+            
+            val diff = currentDate.time - lastDate.time
+            val daysDiff = (diff / (1000 * 60 * 60 * 24)).toInt()
+            
+            if (daysDiff <= 1) return false
+            
+            // Check for missed days based on frequency
+            val cal = java.util.Calendar.getInstance()
+            cal.time = lastDate
+            
+            for (i in 1 until daysDiff) {
+                cal.add(java.util.Calendar.DAY_OF_YEAR, 1)
+                val dayOfWeek = cal.get(java.util.Calendar.DAY_OF_WEEK)
+                // Calendar.SUNDAY = 1 -> index 6
+                // Calendar.MONDAY = 2 -> index 0
+                val index = if (dayOfWeek == java.util.Calendar.SUNDAY) 6 else dayOfWeek - 2
+                
+                if (habit.frequency.contains(index)) {
+                    return true // found a day that was supposed to be completed but wasn't
+                }
+            }
+            return false
+        } catch (e: Exception) {
+            return false
+        }
+    }
 }
