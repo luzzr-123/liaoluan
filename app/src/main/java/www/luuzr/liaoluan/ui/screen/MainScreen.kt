@@ -186,17 +186,11 @@ fun MainScreen(
         )
     }
 
-    // C5 Fix: 单向数据流 ViewModel → Pager，仅在 settledPage 变化后回同步 ViewModel
-    LaunchedEffect(uiState.currentTab) {
-        if (pagerState.currentPage != uiState.currentTab) {
-            pagerState.animateScrollToPage(uiState.currentTab)
-        }
-    }
+    // C5 Fix v2: pagerState 为唯一数据源
+    // 仅在 settledPage 变化时同步回 ViewModel（供业务逻辑使用）
     LaunchedEffect(pagerState) {
         snapshotFlow { pagerState.settledPage }.collect { settledPage ->
-            if (settledPage != uiState.currentTab) {
-                viewModel.processIntent(www.luuzr.liaoluan.ui.viewmodel.MainIntent.SwitchTab(settledPage))
-            }
+            viewModel.processIntent(www.luuzr.liaoluan.ui.viewmodel.MainIntent.SwitchTab(settledPage))
         }
     }
 
@@ -204,10 +198,10 @@ fun MainScreen(
         Column(modifier = Modifier.fillMaxSize()) {
             // ==================== 顶部 Tab 栏 ====================
             TabBar(
-                currentTab = uiState.currentTab,
+                currentTab = pagerState.currentPage,  // 直读 pagerState，不读 ViewModel
                 onTabSelected = { index ->
-                    // C5 Fix: 仅更新 ViewModel 状态，由上方 LaunchedEffect 驱动 Pager 动画
-                    viewModel.processIntent(www.luuzr.liaoluan.ui.viewmodel.MainIntent.SwitchTab(index))
+                    // 直接操作 pagerState，无需经过 ViewModel
+                    scope.launch { pagerState.scrollToPage(index) }
                 }
             )
 
