@@ -41,7 +41,7 @@ class MainViewModel @Inject constructor(
 
     init {
         observeData()
-        checkCrossDayReset()
+        // BUG-5 Fix: checkCrossDayReset 移到 habits flow 首次 emit 后触发
     }
 
     private fun observeData() {
@@ -59,6 +59,11 @@ class MainViewModel @Inject constructor(
             repository.habits.collect { h ->
                 _viewState.update { it.copy(habits = h, visibleHabits = computeVisibleHabits(h, it.selectedDate, it.selectedDateLogs)) }
             }
+        }
+        // BUG-5 Fix: habits 首次加载完成后才执行跨天重置检查
+        viewModelScope.launch {
+            repository.habits.first() // 等待第一次数据到达
+            checkCrossDayReset()
         }
         
         // Listen to selectedDate changes to fetch corresponding logs
@@ -277,9 +282,7 @@ class MainViewModel @Inject constructor(
     private fun toggleTask(taskId: Long, completed: Boolean) {
         viewModelScope.launch {
             val task = _viewState.value.tasks.find { it.id == taskId } ?: return@launch
-            // 用户反馈：不允许反选 (一旦完成不可撤销)
-            if (task.completed && !completed) return@launch
-            
+            // UX-1 Fix: 允许反选（撤销完成）
             repository.updateTask(task.copy(completed = completed))
             if (completed) triggerParticles()
         }

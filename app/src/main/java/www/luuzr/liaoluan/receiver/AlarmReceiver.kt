@@ -78,7 +78,7 @@ class AlarmReceiver : BroadcastReceiver() {
                     Intent.ACTION_DATE_CHANGED, Intent.ACTION_TIMEZONE_CHANGED -> {
                          val today = www.luuzr.liaoluan.util.DateHandle.todayDate()
                          val yesterday = java.util.Calendar.getInstance().apply { add(java.util.Calendar.DAY_OF_YEAR, -1) }.time
-                         val yesterdayStr = java.text.SimpleDateFormat("yyyy-MM-dd", java.util.Locale.getDefault()).format(yesterday)
+                         val yesterdayStr = java.text.SimpleDateFormat("yyyy-MM-dd", java.util.Locale.US).format(yesterday)
                          
                          habits.forEach { h -> 
                              if (h.lastCompletedDate.isNotEmpty() && h.lastCompletedDate != today && h.progress > 0) {

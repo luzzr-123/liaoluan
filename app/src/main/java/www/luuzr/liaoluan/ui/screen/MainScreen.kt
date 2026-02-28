@@ -407,7 +407,11 @@ fun MainScreen(
         ) {
             www.luuzr.liaoluan.ui.screen.HabitManagementScreen(
                 habits = habits,
-                onEdit = { habit -> viewModel.processIntent(www.luuzr.liaoluan.ui.viewmodel.MainIntent.OpenEditHabitModal(habit)) },
+                onEdit = { habit ->
+                    // UX-4 Fix: 先关闭管理页面再打开编辑弹窗，避免层级叠加
+                    viewModel.processIntent(www.luuzr.liaoluan.ui.viewmodel.MainIntent.ToggleHabitManagement)
+                    viewModel.processIntent(www.luuzr.liaoluan.ui.viewmodel.MainIntent.OpenEditHabitModal(habit))
+                },
                 onDelete = { id -> viewModel.processIntent(www.luuzr.liaoluan.ui.viewmodel.MainIntent.DeleteHabit(id)) },
                 onBack = { viewModel.processIntent(www.luuzr.liaoluan.ui.viewmodel.MainIntent.ToggleHabitManagement) }
             )
