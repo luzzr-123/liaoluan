@@ -109,18 +109,17 @@ object ExactAlarmHelper {
             PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE
         )
 
-        // Target Duration calculated from Actual Start Time
-        // habit.progress contains previous accumulated minutes if paused/resumed
         val remainingMinutes = habit.targetDuration - habit.progress
         if (remainingMinutes <= 0) return true
         
+        // BUG-1 Fix: actualStartTime 现在存的是 elapsedRealtime 基准
+        // 使用 ELAPSED_REALTIME_WAKEUP 来匹配
         val triggerTime = habit.actualStartTime + (remainingMinutes * 60000L)
 
-        // Cancel existing first just in case
         alarmManager.cancel(pendingIntent)
         
         alarmManager.setExactAndAllowWhileIdle(
-            AlarmManager.RTC_WAKEUP,
+            AlarmManager.ELAPSED_REALTIME_WAKEUP,
             triggerTime,
             pendingIntent
         )

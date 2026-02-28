@@ -57,7 +57,8 @@ class StatsViewModel @Inject constructor(
         val offset = firstDayOfWeek - Calendar.SUNDAY
         cal.add(Calendar.DAY_OF_MONTH, -offset)
         
-        val sdf = SimpleDateFormat("yyyy-MM-dd", Locale.getDefault())
+        // BUG-6 Fix: 与 DateHandle 保持一致使用 Locale.US
+        val sdf = SimpleDateFormat("yyyy-MM-dd", Locale.US)
         val startDateStr = sdf.format(cal.time)
         
         cal.add(Calendar.DAY_OF_MONTH, 41) // 42 days window

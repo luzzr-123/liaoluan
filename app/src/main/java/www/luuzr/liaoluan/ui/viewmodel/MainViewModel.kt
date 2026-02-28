@@ -176,7 +176,7 @@ class MainViewModel @Inject constructor(
              habitsSnapshot.forEach { habit ->
                  if (habit.lastCompletedDate.isNotEmpty() && habit.lastCompletedDate != today && habit.progress > 0) {
                      val yesterday = Calendar.getInstance().apply { add(Calendar.DAY_OF_YEAR, -1) }.time
-                     val yesterdayStr = SimpleDateFormat("yyyy-MM-dd", Locale.getDefault()).format(yesterday)
+                     val yesterdayStr = SimpleDateFormat("yyyy-MM-dd", Locale.US).format(yesterday)
                      val isBroken = habit.lastCompletedDate != yesterdayStr && habit.lastCompletedDate != today
                      val newStreak = if (isBroken) 0 else habit.streakDays
 
@@ -189,9 +189,9 @@ class MainViewModel @Inject constructor(
                          )
                      )
                  } else if (habit.lastCompletedDate.isNotEmpty() && habit.lastCompletedDate != today && habit.completed) {
-                      val yesterday = Calendar.getInstance().apply { add(Calendar.DAY_OF_YEAR, -1) }.time
-                      val yesterdayStr = SimpleDateFormat("yyyy-MM-dd", Locale.getDefault()).format(yesterday)
-                      val isBroken = habit.lastCompletedDate != yesterdayStr
+                       val yesterday = Calendar.getInstance().apply { add(Calendar.DAY_OF_YEAR, -1) }.time
+                       val yesterdayStr = SimpleDateFormat("yyyy-MM-dd", Locale.US).format(yesterday)
+                       val isBroken = habit.lastCompletedDate != yesterdayStr
                       
                       repository.updateHabit(
                           habit.copy(
@@ -346,8 +346,7 @@ class MainViewModel @Inject constructor(
                 )
             )
 
-            // 记录到历史表 (HabitLog)
-            repository.deleteHabitLog(habit.id, today)
+            // BUG-10 Fix: insertLog 已使用 OnConflictStrategy.REPLACE，无需先 delete
             repository.insertHabitLog(
                 HabitLogEntity(
                     habitId = habit.id,
@@ -364,7 +363,9 @@ class MainViewModel @Inject constructor(
     private fun startHabitDuration(habit: Habit) {
         viewModelScope.launch {
             if (habit.actualStartTime == 0L && !habit.completed) {
-                val updatedHabit = habit.copy(actualStartTime = System.currentTimeMillis())
+                // BUG-1 Fix: 同时记录 elapsedRealtime 基准和壁钟时间
+                val elapsedBase = android.os.SystemClock.elapsedRealtime()
+                val updatedHabit = habit.copy(actualStartTime = elapsedBase)
                 
                 // Check permissions early before spawning service
                 val p1 = ExactAlarmHelper.scheduleHabitDurationProcess(app, updatedHabit, habit.reminderInterval)
@@ -382,10 +383,9 @@ class MainViewModel @Inject constructor(
                     action = www.luuzr.liaoluan.service.HabitTimerService.ACTION_START
                     putExtra(www.luuzr.liaoluan.service.HabitTimerService.EXTRA_HABIT_ID, updatedHabit.id)
                     putExtra(www.luuzr.liaoluan.service.HabitTimerService.EXTRA_HABIT_NAME, updatedHabit.text)
-                    putExtra(www.luuzr.liaoluan.service.HabitTimerService.EXTRA_ELAPSED_BASE, android.os.SystemClock.elapsedRealtime())
+                    putExtra(www.luuzr.liaoluan.service.HabitTimerService.EXTRA_ELAPSED_BASE, elapsedBase)
                     putExtra(www.luuzr.liaoluan.service.HabitTimerService.EXTRA_PROGRESS, updatedHabit.progress)
                 }
-                // M3 Fix: minSdk=26 已保证 >= O，直接使用 startForegroundService
                 app.startForegroundService(intent)
             }
         }
@@ -396,7 +396,8 @@ class MainViewModel @Inject constructor(
             if (habit.actualStartTime == 0L) return@launch
             
             val today = DateHandle.todayDate()
-            val elapsedMinutes = ((System.currentTimeMillis() - habit.actualStartTime) / 60000).toInt()
+            // BUG-1 Fix: actualStartTime 现在存的是 elapsedRealtime 基准值
+            val elapsedMinutes = ((android.os.SystemClock.elapsedRealtime() - habit.actualStartTime) / 60000).toInt()
             val newProgress = (habit.progress + elapsedMinutes).coerceAtMost(habit.targetDuration)
             val isCompleted = newProgress >= habit.targetDuration
             
@@ -416,8 +417,7 @@ class MainViewModel @Inject constructor(
                 )
             )
 
-            // 记录到历史表
-            repository.deleteHabitLog(habit.id, today)
+            // BUG-10 Fix: insertLog 使用 REPLACE 策略，无需先 delete
             repository.insertHabitLog(
                 HabitLogEntity(
                     habitId = habit.id,
@@ -456,6 +456,10 @@ class MainViewModel @Inject constructor(
                 onUndo = {
                     viewModelScope.launch {
                         repository.insertHabit(habit)
+                        // BUG-4 Fix: 撤销时恢复闹钟
+                        if (habit.habitType == "DURATION") {
+                            ExactAlarmHelper.scheduleHabitPreAlarm(app, habit)
+                        }
                         dismissToast()
                     }
                 }
@@ -520,6 +524,8 @@ class MainViewModel @Inject constructor(
             json.encodeToString(BackupData.serializer(), backup)
         } catch (e: Exception) {
             Log.w("MainViewModel", "getBackupJson failed", e)
+            // UX-3 Fix: 失败时提示用户而非静默返回空字符串
+            showToast("导出失败: ${e.message}")
             ""
         }
     }

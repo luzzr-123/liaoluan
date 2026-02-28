@@ -278,7 +278,7 @@ fun MainScreen(
                     )
                 
                 val fabColor by androidx.compose.animation.animateColorAsState(
-                    targetValue = when (uiState.currentTab) {
+                    targetValue = when (pagerState.currentPage) {  // BUG-3 Fix: 直读 pagerState
                         0 -> BrutalColors.TaskRed
                         1 -> BrutalColors.HabitTeal
                         2 -> BrutalColors.NoteYellow
@@ -340,7 +340,7 @@ fun MainScreen(
             exit = slideOutVertically(targetOffsetY = { it }) + fadeOut()
         ) {
             ItemModal(
-                currentTab = uiState.currentTab,
+                currentTab = pagerState.currentPage,  // BUG-3 Fix: 直读 pagerState
                 editingTask = uiState.editingTask,
                 editingHabit = uiState.editingHabit,
                 editingNote = uiState.editingNote,
